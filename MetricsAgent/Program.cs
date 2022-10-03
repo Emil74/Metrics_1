@@ -1,3 +1,5 @@
+using AutoMapper;
+using MetricsAgent.Mappings;
 using MetricsAgent.Models;
 using MetricsAgent.Services;
 using MetricsAgent.Services.Impl;
@@ -14,6 +16,24 @@ namespace MetricsAgent
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            #region Configure Options
+            builder.Services.Configure<DatabaseOptions>(options =>
+            {
+                builder.Configuration.GetSection("Settings:DatabaseOptions").Bind(options);
+            });
+
+
+            #endregion
+
+            #region Configure Mapping
+
+            var mapperConfiguration = new MapperConfiguration(mp => mp.AddProfile(new
+                MapperProfile()));
+            var mapper = mapperConfiguration.CreateMapper();
+            builder.Services.AddSingleton(mapper);
+
+            #endregion
 
             #region Configure logging
 
@@ -36,13 +56,15 @@ namespace MetricsAgent
 
             #endregion
 
+            #region Configure Repositories
+
             builder.Services.AddScoped<ICpuMetricsRepository, CpuMetricsRepository>();
             builder.Services.AddScoped<IDotNetMetricsRepository, DotNetMetricsRepository>();
             builder.Services.AddScoped<IHddMetricsRepository, HddMetricsRepository>();
             builder.Services.AddScoped<INetworkMetricsRepository, NetworkMetricsRepository>();
             builder.Services.AddScoped<IRamMetricsRepository, RamMetricsRepository>();
             //ConfigureSqlLiteConnection();
-
+            #endregion
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
