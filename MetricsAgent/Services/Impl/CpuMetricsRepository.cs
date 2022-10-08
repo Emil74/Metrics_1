@@ -8,6 +8,20 @@ namespace MetricsAgent.Services.Impl
     public class CpuMetricsRepository : ICpuMetricsRepository
     {
 
+        #region Private Fields
+
+        private readonly IOptions<DatabaseOptions> _databaseOptions;
+        #endregion
+
+        #region Constructor
+
+        public CpuMetricsRepository(IOptions<DatabaseOptions> databaseOptions)
+        {
+            _databaseOptions = databaseOptions;
+
+        }
+        #endregion
+
         #region Public Method
 
         public void Create(CpuMetric item)
@@ -15,11 +29,11 @@ namespace MetricsAgent.Services.Impl
 
             using var connection = new SQLiteConnection(_databaseOptions.Value.ConnectionString);
 
-            connection.Execute("INSERT INTO cpumetrics(value, time) VALUES(@value, @time)",
+            connection.Execute("INSERT INTO cpumetrics(Value, Time) VALUES(@value, @time)",
                 new
                 {
-                    value = item.Value,
-                    time = item.Time
+                    Value = item.Value,
+                    Time = item.Time
                 });
 
             #region Create
@@ -204,18 +218,5 @@ namespace MetricsAgent.Services.Impl
         }
         #endregion
 
-        #region Private Fields
-
-        private readonly IOptions<DatabaseOptions> _databaseOptions;
-        #endregion
-
-        #region Constructor
-
-        public CpuMetricsRepository(IOptions<DatabaseOptions> databaseOptions)
-        {
-            _databaseOptions = databaseOptions;
-
-        }
-        #endregion
     }
 }

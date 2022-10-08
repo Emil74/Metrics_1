@@ -1,9 +1,12 @@
 using AutoMapper;
+using FluentMigrator.Runner;
 using MetricsAgent.Mappings;
 using MetricsAgent.Models;
 using MetricsAgent.Services;
 using MetricsAgent.Services.Impl;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using NLog.Web;
@@ -16,6 +19,9 @@ namespace MetricsAgent
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+
+
 
             #region Configure Options
             builder.Services.Configure<DatabaseOptions>(options =>
@@ -63,12 +69,32 @@ namespace MetricsAgent
             builder.Services.AddScoped<IHddMetricsRepository, HddMetricsRepository>();
             builder.Services.AddScoped<INetworkMetricsRepository, NetworkMetricsRepository>();
             builder.Services.AddScoped<IRamMetricsRepository, RamMetricsRepository>();
+
+
+
+
+
             //ConfigureSqlLiteConnection();
             #endregion
 
+            #region Configure Connection
+           
+            builder.Services.AddFluentMigratorCore()
+               .ConfigureRunner(rb =>
+               rb.AddSQLite()
+               .WithGlobalConnectionString(builder.Configuration["Settings:DatabaseOptions:ConnectionString"].ToString())
+               .ScanIn(typeof(Program).Assembly).For.Migrations()
+               ).AddLogging(lb => lb.AddFluentMigratorConsole());
+
+            #endregion
+
             builder.Services.AddControllers();
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
+
+
+
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "MetricsAgent", Version = "v1" });
@@ -79,48 +105,73 @@ namespace MetricsAgent
                     Type = "string",
                     Example = new OpenApiString("00:00:00")
                 });
+
             });
 
             var app = builder.Build();
+
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+
             }
+
 
             app.UseAuthorization();
             app.UseHttpLogging();
 
             app.MapControllers();
 
-            app.Run();
-        }
-
-        private static void ConfigureSqlLiteConnection()
-        {
-            const string connectionString = "Data Source = metrics.db; Version = 3; Pooling = true; Max Pool Size = 100;";
-            var connection = new SQLiteConnection(connectionString);
-            connection.Open();
-            PrepareSchema(connection);
-        }
-
-        private static void PrepareSchema(SQLiteConnection connection)
-        {
-            using (var command = new SQLiteCommand(connection))
+            var serviceScopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
+            using (IServiceScope serviceScope = serviceScopeFactory.CreateScope())
             {
-                //Задаём новый текст команды для выполнения
-                // Удаляем таблицу с метриками, если она есть в базе данных
-                command.CommandText = "DROP TABLE IF EXISTS cpumetrics";
-                // Отправляем запрос в базу данных
-                command.ExecuteNonQuery();
-                command.CommandText =
-                    @"CREATE TABLE cpumetrics(id INTEGER
-                    PRIMARY KEY,
-                    value INT, time INT)";
-                command.ExecuteNonQuery();
+                var migrationRunner = serviceScope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+                migrationRunner.MigrateUp();
             }
+
+            //using (var scope = app.Services.CreateScope())
+            //{
+            //    var db = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+            //    db.MigrateUp();
+            //}
+
+            app.Run();
+
+
+
+
+
         }
+        #region Connection Старый
+
+
+        //private static void ConfigureSqlLiteConnection()
+        //{
+        //    const string connectionString = "Data Source = metrics.db; Version = 3; Pooling = true; Max Pool Size = 100;";
+        //    var connection = new SQLiteConnection(connectionString);
+        //    connection.Open();
+        //    PrepareSchema(connection);
+        //}
+
+        //private static void PrepareSchema(SQLiteConnection connection)
+        //{
+        //    using (var command = new SQLiteCommand(connection))
+        //    {
+        //        //Задаём новый текст команды для выполнения
+        //        // Удаляем таблицу с метриками, если она есть в базе данных
+        //        command.CommandText = "DROP TABLE IF EXISTS cpumetrics";
+        //        // Отправляем запрос в базу данных
+        //        command.ExecuteNonQuery();
+        //        command.CommandText =
+        //            @"CREATE TABLE cpumetrics(id INTEGER
+        //            PRIMARY KEY,
+        //            value INT, time INT)";
+        //        command.ExecuteNonQuery();
+        //    }
+        //}
+        #endregion
     }
 }
