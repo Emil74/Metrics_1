@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MetricsAgent.Migrations
 {
-    [Migration(0)]
+    [Migration(1)]
     public class FirstMigration : Migration
     {
         public override void Up()

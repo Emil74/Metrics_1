@@ -29,7 +29,7 @@ namespace MetricsAgent.Services.Impl
 
             using var connection = new SQLiteConnection(_databaseOptions.Value.ConnectionString);
 
-            connection.Execute("INSERT INTO cpumetrics(Value, Time) VALUES(@value, @time)",
+            connection.Execute("INSERT INTO cpumetrics(value, time) VALUES(@value, @time)",
                 new
                 {
                     Value = item.Value,

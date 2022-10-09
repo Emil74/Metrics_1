@@ -1,5 +1,7 @@
 using AutoMapper;
 using FluentMigrator.Runner;
+using MetricsAgent.Job;
+using MetricsAgent.Jobs;
 using MetricsAgent.Mappings;
 using MetricsAgent.Models;
 using MetricsAgent.Services;
@@ -10,6 +12,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using NLog.Web;
+using Quartz;
+using Quartz.Impl;
+using Quartz.Spi;
 using System.Data.SQLite;
 
 namespace MetricsAgent
@@ -19,8 +24,6 @@ namespace MetricsAgent
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
-
 
 
             #region Configure Options
@@ -64,11 +67,11 @@ namespace MetricsAgent
 
             #region Configure Repositories
 
-            builder.Services.AddScoped<ICpuMetricsRepository, CpuMetricsRepository>();
-            builder.Services.AddScoped<IDotNetMetricsRepository, DotNetMetricsRepository>();
-            builder.Services.AddScoped<IHddMetricsRepository, HddMetricsRepository>();
-            builder.Services.AddScoped<INetworkMetricsRepository, NetworkMetricsRepository>();
-            builder.Services.AddScoped<IRamMetricsRepository, RamMetricsRepository>();
+            builder.Services.AddSingleton<ICpuMetricsRepository, CpuMetricsRepository>();
+            builder.Services.AddSingleton<IDotNetMetricsRepository, DotNetMetricsRepository>();
+            builder.Services.AddSingleton<IHddMetricsRepository, HddMetricsRepository>();
+            builder.Services.AddSingleton<INetworkMetricsRepository, NetworkMetricsRepository>();
+            builder.Services.AddSingleton<IRamMetricsRepository, RamMetricsRepository>();
 
 
 
@@ -78,13 +81,33 @@ namespace MetricsAgent
             #endregion
 
             #region Configure Connection
-           
+
             builder.Services.AddFluentMigratorCore()
                .ConfigureRunner(rb =>
                rb.AddSQLite()
                .WithGlobalConnectionString(builder.Configuration["Settings:DatabaseOptions:ConnectionString"].ToString())
                .ScanIn(typeof(Program).Assembly).For.Migrations()
                ).AddLogging(lb => lb.AddFluentMigratorConsole());
+
+            #endregion
+
+            #region Configure Jobs
+
+            // Регистрация сервиса фабрики
+            builder.Services.AddSingleton<IJobFactory, SingletonJobFactory>();
+            // Регистрация базового сервиса Quartz
+            builder.Services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+            // Регистрация сервиса самой задачи
+            builder.Services.AddSingleton<CpuMetricJob>();
+            builder.Services.AddSingleton<DotNetMetricJob>();
+            builder.Services.AddSingleton<HddMetricJob>();
+            builder.Services.AddSingleton<NetworkMetricJob>();
+            builder.Services.AddSingleton<RamMetricJob>();
+
+            // https://www.freeformatter.com/cron-expression-generator-quartz.html
+            builder.Services.AddSingleton(new JobSchedule(typeof(CpuMetricJob), "0/5 * * ? * * *"));
+
+            builder.Services.AddHostedService<QuartzHostedService>();
 
             #endregion
 
@@ -132,17 +155,7 @@ namespace MetricsAgent
                 migrationRunner.MigrateUp();
             }
 
-            //using (var scope = app.Services.CreateScope())
-            //{
-            //    var db = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
-            //    db.MigrateUp();
-            //}
-
             app.Run();
-
-
-
-
 
         }
         #region Connection Старый

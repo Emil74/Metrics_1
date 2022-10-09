@@ -26,21 +26,21 @@ namespace MetricsAgent.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost("create")]
-        public IActionResult Create([FromBody] RamMetricCreateRequest request)
-        {
-            _logger.LogInformation("Create ram metric.");
+        //[HttpPost("create")]
+        //public IActionResult Create([FromBody] RamMetricCreateRequest request)
+        //{
+        //    _logger.LogInformation("Create ram metric.");
 
-            _ramMetricsRepository.Create(
-                _mapper.Map<RamMertic>(request));
-            /*
-            _ramMetricsRepository.Create(new Models.RamMertic
-            {
-                Value = request.Value,
-                Time = (long)request.Time.TotalSeconds
-            });*/
-            return Ok();
-        }
+        //    _ramMetricsRepository.Create(
+        //        _mapper.Map<RamMertic>(request));
+        //    /*
+        //    _ramMetricsRepository.Create(new Models.RamMertic
+        //    {
+        //        Value = request.Value,
+        //        Time = (long)request.Time.TotalSeconds
+        //    });*/
+        //    return Ok();
+        //}
 
         [HttpGet("from/{fromTime}/to/{toTime}")]
         //[Route("from/{fromTime}/to/{toTime}")]

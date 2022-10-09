@@ -26,20 +26,20 @@ namespace MetricsAgent.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost("create")]
-        public IActionResult Create([FromBody] DotNetMetricCreateRequest request)
-        {
-            _logger.LogInformation("Create dot net metric.");
-            _dotNetMetricsRepository.Create(
-                _mapper.Map<DotNetMetric>(request));
+        ////[HttpPost("create")]
+        ////public IActionResult Create([FromBody] DotNetMetricCreateRequest request)
+        ////{
+        ////    _logger.LogInformation("Create dot net metric.");
+        ////    _dotNetMetricsRepository.Create(
+        ////        _mapper.Map<DotNetMetric>(request));
 
-            /*_dotNetMetricsRepository.Create(new Models.DotNetMetric
-            {
-                Value = request.Value,
-                Time = (long)request.Time.TotalSeconds
-            });*/
-            return Ok();
-        }
+        ////    /*_dotNetMetricsRepository.Create(new Models.DotNetMetric
+        ////    {
+        ////        Value = request.Value,
+        ////        Time = (long)request.Time.TotalSeconds
+        ////    });*/
+        ////    return Ok();
+        ////}
 
         [HttpGet("from/{fromTime}/to/{toTime}")]
         //[Route("from/{fromTime}/to/{toTime}")]

@@ -25,22 +25,22 @@ namespace MetricsAgent.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost("create")]
-        public IActionResult Create([FromBody] HddMetricCreateRequest request)
-        {
-            _logger.LogInformation("Create hdd metric.");
+        //[HttpPost("create")]
+        //public IActionResult Create([FromBody] HddMetricCreateRequest request)
+        //{
+        //    _logger.LogInformation("Create hdd metric.");
 
-            _hddMetricsRepository.Create(
-                _mapper.Map<HddMetric>(request));
+        //    _hddMetricsRepository.Create(
+        //        _mapper.Map<HddMetric>(request));
 
-            /*
-            _hddMetricsRepository.Create(new Models.HddMetric
-            {
-                Value = request.Value,
-                Time = (long)request.Time.TotalSeconds
-            });*/
-            return Ok();
-        }
+        //    /*
+        //    _hddMetricsRepository.Create(new Models.HddMetric
+        //    {
+        //        Value = request.Value,
+        //        Time = (long)request.Time.TotalSeconds
+        //    });*/
+        //    return Ok();
+        //}
 
         [HttpGet("from/{fromTime}/to/{toTime}")]
         //[Route("from/{fromTime}/to/{toTime}")]

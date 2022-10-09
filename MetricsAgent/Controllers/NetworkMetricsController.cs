@@ -26,20 +26,20 @@ namespace MetricsAgent.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost("create")]
-        public IActionResult Create([FromBody] NetworkMetricCreateRequest request)
-        {
-            _logger.LogInformation("Create network metric.");
-            _networkMetricsRepository.Create(
-                _mapper.Map<NetworkMetric>(request));
-            /*
-            _networkMetricsRepository.Create(new Models.NetworkMetric
-            {
-                Value = request.Value,
-                Time = (long)request.Time.TotalSeconds
-            });*/
-            return Ok();
-        }
+        //[HttpPost("create")]
+        //public IActionResult Create([FromBody] NetworkMetricCreateRequest request)
+        //{
+        //    _logger.LogInformation("Create network metric.");
+        //    _networkMetricsRepository.Create(
+        //        _mapper.Map<NetworkMetric>(request));
+        //    /*
+        //    _networkMetricsRepository.Create(new Models.NetworkMetric
+        //    {
+        //        Value = request.Value,
+        //        Time = (long)request.Time.TotalSeconds
+        //    });*/
+        //    return Ok();
+        //}
 
         [HttpGet("from/{fromTime}/to/{toTime}")]
         //[Route("from/{fromTime}/to/{toTime}")]
