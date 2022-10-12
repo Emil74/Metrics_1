@@ -1,6 +1,12 @@
+using MetricsManager.Converters;
 using MetricsManager.Models;
+using MetricsManager.Services.Client;
+using MetricsManager.Services.Client.Impl;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
+using NLog.Web;
+using Polly;
 
 namespace MetricsManager
 {
@@ -14,14 +20,114 @@ namespace MetricsManager
             // Add services to the container.
 
 
+            #region Configure logging
+
+            builder.Host.ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+
+            }).UseNLog(new NLogAspNetCoreOptions() { RemoveLoggerFactoryFilter = true });
+
+            builder.Services.AddHttpLogging(logging =>
+            {
+                logging.LoggingFields = HttpLoggingFields.All | HttpLoggingFields.RequestQuery;
+                logging.RequestBodyLogLimit = 4096;
+                logging.ResponseBodyLogLimit = 4096;
+                logging.RequestHeaders.Add("Authorization");
+                logging.RequestHeaders.Add("X-Real-IP");
+                logging.RequestHeaders.Add("X-Forwarded-For");
+            });
+
+            #endregion
+
+
             builder.Services.AddSingleton<AgentPool>();
 
-            builder.Services.AddControllers();
+            builder.Services.AddHttpClient();
+
+
+            builder.Services.AddHttpClient<ICpuMetricsAgentClient, CpuMetricsAgentClient>()
+                .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(retryCount: 3,
+                sleepDurationProvider: (attemptCount) => TimeSpan.FromSeconds(attemptCount * 2),
+                onRetry: (response, sleepDuration, attemptCount, context) =>
+                {
+
+                    var logger = builder.Services.BuildServiceProvider().GetService<ILogger<Program>>()!;
+                    logger.LogError(response.Exception != null ? response.Exception :
+                        new Exception($"\n{response.Result.StatusCode}: {response.Result.RequestMessage}"),
+                        $"(attempt: {attemptCount}) request exception.");
+                }
+                ));
+
+
+            builder.Services.AddHttpClient<IDotNetMetricsAgentClient, DotNetMetricsAgentClient>()
+                .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(retryCount: 3,
+                sleepDurationProvider: (attemptCount) => TimeSpan.FromSeconds(attemptCount * 2),
+                onRetry: (response, sleepDuration, attemptCount, context) =>
+                {
+
+                    var logger = builder.Services.BuildServiceProvider().GetService<ILogger<Program>>()!;
+                    logger.LogError(response.Exception != null ? response.Exception :
+                        new Exception($"\n{response.Result.StatusCode}: {response.Result.RequestMessage}"),
+                        $"(attempt: {attemptCount}) request exception.");
+                }
+                ));
+
+
+
+            builder.Services.AddHttpClient<IHddMetricsAgentClient, HddMetricsAgentClient>()
+                .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(retryCount: 3,
+                sleepDurationProvider: (attemptCount) => TimeSpan.FromSeconds(attemptCount * 2),
+                onRetry: (response, sleepDuration, attemptCount, context) =>
+                {
+
+                    var logger = builder.Services.BuildServiceProvider().GetService<ILogger<Program>>()!;
+                    logger.LogError(response.Exception != null ? response.Exception :
+                        new Exception($"\n{response.Result.StatusCode}: {response.Result.RequestMessage}"),
+                        $"(attempt: {attemptCount}) request exception.");
+                }
+                ));
+
+
+
+            builder.Services.AddHttpClient<INetworkMetricsAgentClient, NetworkMetricsAgentClient>()
+                .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(retryCount: 3,
+                sleepDurationProvider: (attemptCount) => TimeSpan.FromSeconds(attemptCount * 2),
+                onRetry: (response, sleepDuration, attemptCount, context) =>
+                {
+
+                    var logger = builder.Services.BuildServiceProvider().GetService<ILogger<Program>>()!;
+                    logger.LogError(response.Exception != null ? response.Exception :
+                        new Exception($"\n{response.Result.StatusCode}: {response.Result.RequestMessage}"),
+                        $"(attempt: {attemptCount}) request exception.");
+                }
+                ));
+
+
+
+
+            builder.Services.AddHttpClient<IRamMetricsAgentClient, RamMetricsAgentClient>()
+                .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(retryCount: 3,
+                sleepDurationProvider: (attemptCount) => TimeSpan.FromSeconds(attemptCount * 2),
+                onRetry: (response, sleepDuration, attemptCount, context) =>
+                {
+
+                    var logger = builder.Services.BuildServiceProvider().GetService<ILogger<Program>>()!;
+                    logger.LogError(response.Exception != null ? response.Exception :
+                        new Exception($"\n{response.Result.StatusCode}: {response.Result.RequestMessage}"),
+                        $"(attempt: {attemptCount}) request exception.");
+                }
+                ));
+
+            builder.Services.AddControllers()
+              .AddJsonOptions(options =>
+                  options.JsonSerializerOptions.Converters.Add(new CustomTimeSpanConverter()));
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "MetricsAgent", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "MetricsManager", Version = "v1" });
 
                 // Поддержка TimeSpan
                 c.MapType<TimeSpan>(() => new OpenApiSchema
@@ -41,7 +147,7 @@ namespace MetricsManager
             }
 
             app.UseAuthorization();
-
+            app.UseHttpLogging();
 
             app.MapControllers();
 
