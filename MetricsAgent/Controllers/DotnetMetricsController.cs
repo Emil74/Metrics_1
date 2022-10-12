@@ -9,7 +9,7 @@ using MetricsAgent.Models.Dto;
 
 namespace MetricsAgent.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/metrics/dotnet")]
     [ApiController]
     public class DotnetMetricsController : ControllerBase
     {
